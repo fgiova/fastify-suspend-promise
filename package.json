@@ -1,7 +1,7 @@
 {
 	"name": "@fgiova/fastify-suspend-promise",
 	"description": "Suspend promise waiting redis pub/sub signal",
-	"version": "0.0.0",
+	"version": "1.0.0",
 	"main": "./dist/cjs/index.js",
 	"types": "./dist/cjs/index.d.ts",
 	"exports": {
