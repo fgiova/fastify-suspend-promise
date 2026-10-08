@@ -1,0 +1,54 @@
+const { startRedis } = require("../runners/redis");
+const { writeFile } = require("node:fs/promises");
+const { getReaper } = require("testcontainers/build/reaper/reaper");
+const { getContainerRuntimeClient } = require("testcontainers");
+
+const startReaper = async () => {
+	if (
+		process.env.TESTCONTAINERS_RYUK_DISABLED === "true" ||
+		process.env.TESTCONTAINERS_RYUK_DISABLED === "1"
+	) {
+		return {};
+	}
+	const containerRuntimeClient = await getContainerRuntimeClient();
+	await getReaper(containerRuntimeClient);
+	const runningContainers = await containerRuntimeClient.container.list();
+	const reaper = runningContainers.find(
+		(container) => container.Labels["org.testcontainers.ryuk"] === "true",
+	);
+	// biome-ignore lint/suspicious/noDoubleEquals: as is
+	const reaperNetwork = reaper.Ports.find((port) => port.PrivatePort == 8080);
+	const reaperPort = reaperNetwork.PublicPort;
+	const reaperIp = containerRuntimeClient.info.containerRuntime.host;
+	const reaperSessionId = reaper.Labels["org.testcontainers.session-id"];
+	return {
+		REAPER: `${reaperIp}:${reaperPort}`,
+		REAPER_SESSION_ID: reaperSessionId,
+	};
+};
+
+const before = async () => {
+	if (!process.env.TEST_LOCAL) {
+		console.log("Start Reaper");
+		const reaperEnv = await startReaper();
+		process.env.REAPER_SESSION_ID = reaperEnv.REAPER_SESSION_ID;
+		console.log("Start Redis");
+		const {
+			// biome-ignore lint/correctness/noUnusedVariables: leave for clarity
+			container: redisContainer,
+			port: redisPort,
+			host: redisHost,
+		} = await startRedis();
+		process.env.REDIS_URL = `redis://${redisHost}:${redisPort}`;
+		await writeFile(
+			"test-env.json",
+			JSON.stringify({
+				...reaperEnv,
+				REDIS_URL: process.env.REDIS_URL,
+				MODE: "local",
+			}),
+		);
+	}
+};
+
+module.exports = before();
