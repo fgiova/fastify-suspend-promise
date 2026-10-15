@@ -187,6 +187,8 @@ function pendingPromiseController<T>(
 		subscriber.on("message", onMessage);
 	});
 
+	waitingPromise.catch(() => {});
+
 	promiseCache.set(promiseName, {
 		namedSymbol,
 		abort,

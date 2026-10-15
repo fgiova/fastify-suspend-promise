@@ -358,6 +358,25 @@ test("suspend-promise", async (t) => {
 		await rejected;
 	});
 
+	await t.test("unawaited rejections are not unhandled", async (t) => {
+		const { app } = t.context as { app: FastifyInstance };
+		app.register(suspendPromise, { redis: { url: redisUrl } });
+		await app.ready();
+		const unhandled: unknown[] = [];
+		const onUnhandled = (reason: unknown) => unhandled.push(reason);
+		process.on("unhandledRejection", onUnhandled);
+		t.teardown(() => {
+			process.off("unhandledRejection", onUnhandled);
+		});
+
+		const cleaned = await app.suspendPromise("unawaited-cleanup");
+		cleaned.cleanup();
+		await app.suspendPromise("unawaited-close");
+		await app.close();
+		await setTimeout(50);
+		t.same(unhandled, []);
+	});
+
 	await t.test(
 		"stored result is ignored after cleanup during GET",
 		async (t) => {
