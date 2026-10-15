@@ -1,3 +1,14 @@
+# [2.0.0](https://github.com/fgiova/fastify-suspend-promise/compare/1.0.1...2.0.0) (2026-10-15)
+
+
+* feat!: fail fast when subscribing to a suspended promise fails ([0bdfa47](https://github.com/fgiova/fastify-suspend-promise/commit/0bdfa47eff7d622721e5ad85f11901d7a34d6fab))
+
+
+### BREAKING CHANGES
+
+* suspendPromise() rejects on subscribe/GET errors;
+previously the error was only delivered through the returned promise.
+
 ## [1.0.1](https://github.com/fgiova/fastify-suspend-promise/compare/1.0.0...1.0.1) (2026-10-15)
 
 
