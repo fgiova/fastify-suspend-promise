@@ -274,6 +274,7 @@ async function suspendPromise(
 				}
 			} catch (err) {
 				promise.abort(err as Error);
+				throw err;
 			}
 
 			return {

@@ -2,6 +2,7 @@ import { type Test, test } from "tap";
 // biome-ignore lint/suspicious/noTsIgnore: is a Test file
 // @ts-ignore
 import "../helpers/localtest";
+import { once } from "node:events";
 import { setTimeout } from "node:timers/promises";
 import fastifyRedis from "@fastify/redis";
 import Fastify, { type FastifyInstance } from "fastify";
@@ -114,7 +115,10 @@ test("suspend-promise", async (t) => {
 		t.equal(await waiter.promise, "done");
 
 		const subscriber = app.redis.subscriber;
+		// quit() resolves on the QUIT reply, "end" is emitted when the socket closes
+		const ended = once(subscriber, "end");
 		await app.close();
+		await ended;
 		t.equal(subscriber.status, "end");
 	});
 
@@ -405,7 +409,7 @@ test("suspend-promise", async (t) => {
 		},
 	);
 
-	await t.test("subscribe failure rejects the promise", async (t) => {
+	await t.test("subscribe failure throws", async (t) => {
 		const { app } = t.context as { app: FastifyInstance };
 		const { publisher, subscriber } = connections(t);
 		app.register(suspendPromise, {
@@ -413,8 +417,9 @@ test("suspend-promise", async (t) => {
 		});
 		await app.ready();
 		subscriber.disconnect();
-		const waiter = await app.suspendPromise("subscribe-fail");
-		await t.rejects(waiter.promise, { message: /Connection is closed/ });
+		await t.rejects(app.suspendPromise("subscribe-fail"), {
+			message: /Connection is closed/,
+		});
 		t.equal(app.getSuspendedPromise("subscribe-fail"), undefined);
 	});
 
@@ -439,7 +444,7 @@ test("suspend-promise", async (t) => {
 		other.cleanup();
 		subscriber.disconnect();
 		subscribeGate.open();
-		await pending;
+		await t.rejects(pending, { message: /Connection is closed/ });
 		await rejected;
 	});
 
