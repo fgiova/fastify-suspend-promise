@@ -95,6 +95,7 @@ fastify.suspendPromise<T>(promiseName?: string, timeoutMs?: number): Promise<Sus
 
 Subscribes to the promise channel and returns once the subscription is active, so a resolution published
 after this call returns is always received.
+Throws (fail fast) if subscribing or reading the stored result fails.
 
 | Param       | Description                                                                          |
 |-------------|--------------------------------------------------------------------------------------|
@@ -144,8 +145,6 @@ Promises cannot be shared between processes: use `suspendPromise` with the same 
   - `Promise <name> was cleaned up` on `cleanup()` and on fastify shutdown;
   - `Invalid message received` for a message without `response` or `error`;
   - a `SyntaxError` for a message that is not valid JSON.
-- **Attach handlers early**: the promise can settle as soon as `suspendPromise` returns.
-  Await it (or attach `.catch`) before awaiting other work, otherwise a rejection is reported as unhandled.
 - **Timeout timer**: the timer is `unref`'d, it does not keep the process alive on its own.
 - **Payload**: messages are serialized with JSON: `Date` becomes a string, errors carry only their message.
 - **Channel names**: the Redis channel is `<channelPrefix>:<promiseName>`, or `<promiseName>` without a prefix. Without a prefix, choose names that do not collide with other pub/sub users.
